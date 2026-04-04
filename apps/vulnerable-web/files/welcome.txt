@@ -1,0 +1,7 @@
+Welcome to SmallCo!
+
+Please review the employee directory for contact information.
+IT support tickets should be submitted to jsmith@smallco.local.
+
+Remember: our quarterly security audit is coming up.
+Please ensure all passwords meet the new complexity requirements.

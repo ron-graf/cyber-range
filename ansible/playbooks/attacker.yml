@@ -1,0 +1,94 @@
+---
+- name: Configure Attacker Jump Box
+  hosts: attacker
+  become: true
+  tasks:
+    - name: Install penetration testing tools
+      apt:
+        name:
+          - nmap
+          - hydra
+          - sqlmap
+          - nikto
+          - dirb
+          - curl
+          - wget
+          - netcat-openbsd
+          - python3-pip
+          - python3-venv
+          - sshpass
+          - whois
+          - dnsutils
+          - tcpdump
+          - john
+          - hashcat
+          - gobuster
+          - enum4linux
+          - smbclient
+          - mysql-client
+          - nfs-common
+        state: present
+      ignore_errors: true
+
+    - name: Install Python pentest tools
+      pip:
+        name:
+          - requests
+          - beautifulsoup4
+          - pwntools
+          - impacket
+        executable: pip3
+      ignore_errors: true
+
+    - name: Create range info file
+      copy:
+        dest: /home/{{ ansible_user }}/RANGE_INFO.md
+        owner: "{{ ansible_user }}"
+        content: |
+          # SmallCo Cyber Range - Attack Brief
+
+          ## Objective
+          Compromise the admin-server and retrieve the flag from /root/flag.txt
+
+          ## Scope
+          - DMZ:      10.0.1.0/24 (web-server at 10.0.1.20)
+          - Internal: 10.0.2.0/24 (workstations, DB, file server)
+          - Admin:    10.0.3.0/24 (admin-server at 10.0.3.10)
+
+          ## Rules of Engagement
+          - All hosts in scope
+          - No DoS attacks
+          - Document your attack path
+
+          ## Starting Point
+          You have network access to the DMZ. Start reconnaissance.
+
+          ## Hints (reveal only if stuck)
+          <!-- Hint 1: The web portal on 10.0.1.20 has input validation issues -->
+          <!-- Hint 2: Employee notes contain useful information -->
+          <!-- Hint 3: Service accounts often reuse credentials -->
+          <!-- Hint 4: Check backup scripts for hardcoded secrets -->
+          <!-- Hint 5: SSH keys can open more doors than passwords -->
+
+    - name: Create attack log template
+      copy:
+        dest: /home/{{ ansible_user }}/attack_log.md
+        owner: "{{ ansible_user }}"
+        content: |
+          # Attack Log - SmallCo Range
+          Date: ____________________
+
+          ## Reconnaissance
+
+
+          ## Initial Access
+
+
+          ## Lateral Movement
+
+
+          ## Privilege Escalation
+
+
+          ## Flag
+

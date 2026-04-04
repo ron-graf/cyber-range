@@ -1,0 +1,100 @@
+---
+- name: Configure Database Server
+  hosts: db-server
+  become: true
+  tasks:
+    - name: Install MySQL
+      apt:
+        name:
+          - mysql-server
+          - python3-mysqldb
+        state: present
+
+    - name: Start MySQL
+      systemd:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Configure MySQL to listen on all interfaces
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: "^bind-address"
+        line: "bind-address = 0.0.0.0"
+      notify: Restart MySQL
+
+    - name: Create smallco database
+      mysql_db:
+        name: smallco_db
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Create svc_backup MySQL user with weak auth
+      mysql_user:
+        name: svc_backup
+        password: "Backup2026!"
+        host: "%"
+        priv: "smallco_db.*:ALL"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Populate database with sample data
+      mysql_db:
+        name: smallco_db
+        state: import
+        target: /tmp/seed.sql
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      ignore_errors: true
+
+    - name: Create seed SQL file
+      copy:
+        dest: /tmp/seed.sql
+        content: |
+          USE smallco_db;
+
+          CREATE TABLE IF NOT EXISTS customers (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100),
+            email VARCHAR(100),
+            ssn VARCHAR(11),
+            credit_card VARCHAR(19)
+          );
+
+          INSERT IGNORE INTO customers VALUES
+            (1, 'Customer A', 'a@example.com', '123-45-6789', '4111-1111-1111-1111'),
+            (2, 'Customer B', 'b@example.com', '987-65-4321', '5500-0000-0000-0004'),
+            (3, 'Customer C', 'c@example.com', '555-12-3456', '3400-000000-00009');
+
+          CREATE TABLE IF NOT EXISTS credentials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            service VARCHAR(50),
+            username VARCHAR(50),
+            password VARCHAR(100),
+            notes TEXT
+          );
+
+          INSERT IGNORE INTO credentials VALUES
+            (1, 'admin-server-ssh', 'admin', 'Adm1nS3rv3r!', 'Emergency access to admin server'),
+            (2, 'file-server-smb', 'svc_backup', 'Backup2026!', 'Backup service account'),
+            (3, 'monitoring', 'nagios', 'n4g10s!', 'Disabled but creds still valid');
+
+    - name: Import seed data
+      mysql_db:
+        name: smallco_db
+        state: import
+        target: /tmp/seed.sql
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      ignore_errors: true
+
+    - name: Create svc_backup OS user
+      user:
+        name: svc_backup
+        password: "{{ 'Backup2026!' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+
+  handlers:
+    - name: Restart MySQL
+      systemd:
+        name: mysql
+        state: restarted

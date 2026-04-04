@@ -1,0 +1,112 @@
+---
+- name: Configure File Server
+  hosts: file-server
+  become: true
+  tasks:
+    - name: Install file sharing packages
+      apt:
+        name:
+          - nfs-kernel-server
+          - samba
+          - openssh-server
+        state: present
+
+    - name: Create svc_backup user
+      user:
+        name: svc_backup
+        password: "{{ 'Backup2026!' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Create SSH directory for svc_backup
+      file:
+        path: /home/svc_backup/.ssh
+        state: directory
+        owner: svc_backup
+        mode: "0700"
+
+    - name: Generate SSH key for svc_backup (used to reach admin-server)
+      openssh_keypair:
+        path: /home/svc_backup/.ssh/id_rsa
+        owner: svc_backup
+        type: rsa
+        size: 2048
+      register: svc_backup_key
+
+    - name: Save public key for admin-server
+      copy:
+        content: "{{ svc_backup_key.public_key }}"
+        dest: /tmp/svc_backup_pubkey
+      when: svc_backup_key.public_key is defined
+
+    - name: Create shared directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0777"
+      loop:
+        - /srv/shared
+        - /srv/shared/backups
+        - /srv/shared/documents
+        - /srv/shared/it
+
+    - name: Plant backup script breadcrumb
+      copy:
+        dest: /srv/shared/backups/db_backup.sh
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          # Nightly database backup script
+          # Runs as svc_backup via cron
+
+          MYSQL_HOST="10.0.2.20"
+          MYSQL_USER="svc_backup"
+          MYSQL_PASS="Backup2026!"
+          BACKUP_DIR="/srv/shared/backups"
+
+          mysqldump -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASS smallco_db > $BACKUP_DIR/smallco_db_$(date +%Y%m%d).sql
+
+          # Sync to admin-server for offsite storage
+          scp $BACKUP_DIR/smallco_db_$(date +%Y%m%d).sql admin@10.0.3.10:/opt/reports/backups/
+
+    - name: Plant IT notes
+      copy:
+        dest: /srv/shared/it/admin_access.txt
+        content: |
+          Admin Server Access (10.0.3.10)
+          ================================
+
+          SSH access via svc_backup key:
+            ssh -i /home/svc_backup/.ssh/id_rsa svc_backup@10.0.3.10
+
+          Web console:
+            http://10.0.3.10:80 (admin / Adm1nS3rv3r!)
+
+          NOTE: svc_backup has sudo on admin-server for backup purposes.
+          TODO: Restrict to rsync only (ticket #4521)
+
+    - name: Configure NFS export
+      copy:
+        dest: /etc/exports
+        content: |
+          /srv/shared 10.0.2.0/24(rw,sync,no_subtree_check,no_root_squash)
+      notify: Restart NFS
+
+    - name: Enable NFS
+      systemd:
+        name: nfs-kernel-server
+        state: started
+        enabled: yes
+
+    - name: Allow SSH from jsmith (workstation-1) authorized key
+      authorized_key:
+        user: svc_backup
+        key: "{{ lookup('pipe', 'cat /dev/null') }}"
+        state: present
+      ignore_errors: true
+
+  handlers:
+    - name: Restart NFS
+      systemd:
+        name: nfs-kernel-server
+        state: restarted

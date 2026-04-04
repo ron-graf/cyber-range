@@ -1,0 +1,17 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Ansible
+ansible/inventory/hosts.ini
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store

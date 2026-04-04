@@ -1,0 +1,55 @@
+---
+- name: Configure Internal Workstations
+  hosts: internal
+  become: true
+  tasks:
+    - name: Create user jsmith on workstation-1
+      user:
+        name: jsmith
+        password: "{{ 'password1' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+      when: inventory_hostname == "workstation-1"
+
+    - name: Create .bash_history breadcrumb for jsmith
+      copy:
+        dest: /home/jsmith/.bash_history
+        owner: jsmith
+        content: |
+          ssh svc_backup@10.0.2.30
+          mysql -h 10.0.2.20 -u svc_backup -pBackup2026! smallco_db
+          scp report.csv jdoe@10.0.2.11:/tmp/
+          cat /opt/backups/config.ini
+          ssh-keygen -t rsa -b 2048
+          ssh-copy-id svc_backup@10.0.2.30
+      when: inventory_hostname == "workstation-1"
+
+    - name: Generate SSH keypair for jsmith
+      user:
+        name: jsmith
+        generate_ssh_key: yes
+        ssh_key_type: rsa
+        ssh_key_bits: 2048
+      when: inventory_hostname == "workstation-1"
+
+    - name: Create user jdoe on workstation-2
+      user:
+        name: jdoe
+        password: "{{ 'finance2026' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+      when: inventory_hostname == "workstation-2"
+
+    - name: Plant notes file for jdoe
+      copy:
+        dest: /home/jdoe/notes.txt
+        owner: jdoe
+        content: |
+          Quarterly report access:
+            Server: admin-server (10.0.3.10)
+            User: jdoe
+            Password: finance2026
+            Path: /opt/reports/
+
+          TODO: Ask IT to set up SSH key auth instead of password
+      when: inventory_hostname == "workstation-2"

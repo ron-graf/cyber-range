@@ -1,0 +1,101 @@
+---
+- name: Configure Admin Server (Final Target)
+  hosts: admin
+  become: true
+  tasks:
+    - name: Install packages
+      apt:
+        name:
+          - openssh-server
+          - nginx
+        state: present
+
+    - name: Create admin user
+      user:
+        name: admin
+        password: "{{ 'Adm1nS3rv3r!' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+        groups: sudo
+        append: yes
+
+    - name: Create svc_backup user
+      user:
+        name: svc_backup
+        password: "{{ 'Backup2026!' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+        groups: sudo
+        append: yes
+
+    - name: Create jdoe user (finance reports)
+      user:
+        name: jdoe
+        password: "{{ 'finance2026' | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Authorize svc_backup SSH key from file-server
+      authorized_key:
+        user: svc_backup
+        key: "{{ hostvars['file-server']['svc_backup_key']['public_key'] | default('') }}"
+        state: present
+      ignore_errors: true
+
+    - name: Create report and flag directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /opt/reports
+        - /opt/reports/backups
+        - /root
+
+    - name: Plant the flag
+      copy:
+        dest: /root/flag.txt
+        owner: root
+        mode: "0600"
+        content: |
+          ╔══════════════════════════════════════════════╗
+          ║                                              ║
+          ║   FLAG{smallco_range_pwned_2026}             ║
+          ║                                              ║
+          ║   Congratulations! You've completed the      ║
+          ║   SmallCo Range attack path.                 ║
+          ║                                              ║
+          ║   Attack chain:                              ║
+          ║   1. Web app SQLi/RCE → web-server           ║
+          ║   2. Credential discovery → internal hosts   ║
+          ║   3. Lateral movement → file-server           ║
+          ║   4. SSH key reuse → admin-server             ║
+          ║   5. Privilege escalation → root flag         ║
+          ║                                              ║
+          ╚══════════════════════════════════════════════╝
+
+    - name: Configure svc_backup sudoers (overly permissive)
+      copy:
+        dest: /etc/sudoers.d/svc_backup
+        content: |
+          # TODO: restrict to rsync only (ticket #4521)
+          svc_backup ALL=(ALL) NOPASSWD: ALL
+        mode: "0440"
+
+    - name: Configure admin page
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <html><head><title>SmallCo Admin Console</title></head>
+          <body>
+          <h1>SmallCo Admin Console</h1>
+          <p>Management interface - authorized personnel only.</p>
+          <p>Server: admin-server (10.0.3.10)</p>
+          <p>Status: Operational</p>
+          </body></html>
+
+    - name: Enable nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes

@@ -1,0 +1,10 @@
+IT Department Contacts
+=====================
+
+John Smith    jsmith@smallco.local      Ext 201   Sysadmin
+Bob Wilson    bwilson@smallco.local      Ext 203   DBA / Backups
+Alice Chen    achen@smallco.local        Ext 205   Dev / Internal Tools
+
+Service Accounts:
+  svc_backup  - used for automated database backups
+  svc_monitor - used for nagios health checks (disabled)

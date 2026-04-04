@@ -1,0 +1,6 @@
+project_id       = "your-gcp-project-id"
+region           = "us-central1"
+zone             = "us-central1-a"
+ssh_pub_key_file = "~/.ssh/id_rsa.pub"
+ssh_user         = "ranger"
+use_spot         = true

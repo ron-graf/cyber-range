@@ -1,0 +1,19 @@
+SmallCo Network Map (INTERNAL - DO NOT SHARE)
+===============================================
+
+DMZ (10.0.1.0/24)
+  10.0.1.20  web-server     External portal, Ubuntu 22.04
+
+Internal (10.0.2.0/24)
+  10.0.2.10  workstation-1  John Smith (IT)
+  10.0.2.11  workstation-2  Jane Doe (Finance)
+  10.0.2.20  db-server      MySQL 8.0 - employee/financial data
+  10.0.2.30  file-server    NFS/SMB shares, backup scripts
+
+Admin (10.0.3.0/24)
+  10.0.3.10  admin-server   Management console, restricted access
+
+Notes:
+  - DB backups run nightly via svc_backup account
+  - file-server has SSH keys for admin-server (legacy setup, TODO: remove)
+  - Admin subnet should only be reachable from internal

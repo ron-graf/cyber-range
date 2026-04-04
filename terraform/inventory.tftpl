@@ -1,0 +1,22 @@
+[attacker]
+attacker ansible_host=${attacker_ip} ansible_user=${ssh_user}
+
+[dmz]
+web-server ansible_host=${web_server_ip} ansible_user=${ssh_user}
+
+[internal]
+workstation-1 ansible_host=${workstation_1_ip} ansible_user=${ssh_user}
+workstation-2 ansible_host=${workstation_2_ip} ansible_user=${ssh_user}
+db-server ansible_host=${db_server_ip} ansible_user=${ssh_user}
+file-server ansible_host=${file_server_ip} ansible_user=${ssh_user}
+
+[admin]
+admin-server ansible_host=${admin_server_ip} ansible_user=${ssh_user}
+
+[range:children]
+dmz
+internal
+admin
+
+[all:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ProxyJump=${ssh_user}@${attacker_ip}'

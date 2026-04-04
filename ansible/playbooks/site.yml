@@ -1,0 +1,30 @@
+---
+# Master playbook - configures the entire SmallCo range
+# Run: ansible-playbook playbooks/site.yml
+
+- name: Common setup for all range hosts
+  hosts: range
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install common packages
+      apt:
+        name:
+          - net-tools
+          - curl
+          - wget
+          - vim
+          - python3
+          - python3-pip
+        state: present
+
+- import_playbook: web-server.yml
+- import_playbook: workstations.yml
+- import_playbook: db-server.yml
+- import_playbook: file-server.yml
+- import_playbook: admin-server.yml
+- import_playbook: attacker.yml
