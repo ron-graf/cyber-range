@@ -44,13 +44,15 @@
         creates: /opt/smallco/venv/bin/gunicorn
 
     - name: Initialize the database
-      shell: /opt/smallco/venv/bin/python /opt/smallco/app.py &
-      async: 5
-      poll: 0
-      ignore_errors: true
-
-    - name: Wait then kill init process
-      shell: sleep 2 && pkill -f "python /opt/smallco/app.py" || true
+      shell: |
+        cd /opt/smallco
+        /opt/smallco/venv/bin/python -c "
+        import app
+        app.init_db()
+        print('DB initialized')
+        "
+      args:
+        creates: /opt/smallco/portal.db
 
     - name: Create systemd service for portal
       copy:

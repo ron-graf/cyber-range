@@ -104,6 +104,22 @@ resource "google_compute_firewall" "attacker_to_dmz" {
   target_tags = ["dmz", "dmz-web"]
 }
 
+# --- Provisioning: allow SSH from attacker to all range hosts ---
+# This lets Ansible reach internal/admin hosts via ProxyJump through the attacker.
+# During the exercise, the attacker must still discover credentials to use SSH.
+resource "google_compute_firewall" "attacker_to_all_ssh" {
+  name    = "attacker-to-all-ssh"
+  network = google_compute_network.range_vpc.id
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_tags = ["attacker"]
+  target_tags = ["internal", "admin"]
+}
+
 # --- Allow internal ICMP for network discovery ---
 resource "google_compute_firewall" "allow_icmp_all" {
   name    = "allow-icmp-internal"
