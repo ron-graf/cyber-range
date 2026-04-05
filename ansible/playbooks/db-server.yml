@@ -38,14 +38,6 @@
         state: present
         login_unix_socket: /var/run/mysqld/mysqld.sock
 
-    - name: Populate database with sample data
-      mysql_db:
-        name: smallco_db
-        state: import
-        target: /tmp/seed.sql
-        login_unix_socket: /var/run/mysqld/mysqld.sock
-      ignore_errors: true
-
     - name: Create seed SQL file
       copy:
         dest: /tmp/seed.sql

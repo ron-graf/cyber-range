@@ -1,5 +1,5 @@
 [attacker]
-attacker ansible_host=${attacker_ip} ansible_user=${ssh_user}
+attacker ansible_host=${attacker_ip} ansible_user=${ssh_user} ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 
 [dmz]
 web-server ansible_host=${web_server_ip} ansible_user=${ssh_user}
